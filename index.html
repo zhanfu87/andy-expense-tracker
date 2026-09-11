@@ -28,13 +28,8 @@
   <div class="auth-card">
     <h1>Andy Expense Tracker</h1>
     <p>私人云端记账 · 只有你登录后才能查看资料</p>
-    <div class="auth-tabs"><button id="signInTab" class="btn primary">Sign In</button><button id="signUpTab" class="btn">Create Account</button></div>
-    <form id="authForm">
-      <div class="field"><label>Email</label><input id="authEmail" type="email" required placeholder="you@example.com"></div>
-      <div class="field" style="margin-top:12px"><label>Password</label><input id="authPassword" type="password" minlength="6" required placeholder="至少 6 个字符"></div>
-      <button id="authSubmit" class="btn primary" style="width:100%;margin-top:16px" type="submit">Sign In</button>
-    </form>
-    <div id="authMsg" class="auth-msg"></div>
+    <button id="googleSignInBtn" class="btn primary" style="width:100%;margin-top:8px" type="button">Continue with Google</button>
+    <div id="authMsg" class="auth-msg">使用你的 Google 账号登录。你的开销资料仍由 Supabase 独立保存。</div>
   </div>
 </div>
 
@@ -81,7 +76,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const CATEGORIES=['Food','Grocery','Petrol','Car','Shopping','Bills','Entertainment','Health','Travel','Home','Business','Others'];
 const PAYMENTS=['Cash','Maybank Amex','Maybank Visa/Mastercard','UOB','Touch ’n Go','DuitNow','Other Card','Others'];
 const $=s=>document.querySelector(s); const money=n=>'RM'+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
-let expenses=[], budget=0, authMode='signin', currentUser=null;
+let expenses=[], budget=0, currentUser=null;
 function localDate(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function monthKey(d){return d.slice(0,7)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
@@ -101,12 +96,22 @@ async function deleteExpense(id){if(!confirm('确定删除这笔开销？'))retu
 expenseForm.addEventListener('submit',async e=>{e.preventDefault();const payload={expense_date:date.value,expense_time:time.value||null,merchant:merchant.value.trim(),amount:Number(amount.value),category:category.value,payment_method:payment.value,expense_type:expenseType.value,remarks:remarks.value.trim()||null};setCloud(false,'Saving…');let error;if(editId.value){({error}=await db.from('expenses').update(payload).eq('id',editId.value))}else{({error}=await db.from('expenses').insert(payload))}if(error){alert(error.message);setCloud(false,'Sync Error');return}expenseDialog.close();await refreshData()});
 async function saveBudget(){let v=Number(budgetInput.value||0),mk=localDate().slice(0,7);const {error}=await db.from('budgets').upsert({month_key:mk,amount:v},{onConflict:'user_id,month_key'});if(error){alert(error.message);return}budgetDialog.close();await refreshData()}
 function exportData(){let blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),expenses,budget},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`andy-expenses-${localDate()}.json`;a.click();URL.revokeObjectURL(a.href)}
-function setAuthMode(mode){authMode=mode;signInTab.classList.toggle('primary',mode==='signin');signUpTab.classList.toggle('primary',mode==='signup');authSubmit.textContent=mode==='signin'?'Sign In':'Create Account';authMsg.textContent=mode==='signup'?'第一次使用请建立账号。Supabase 可能会要求你先到 Email 确认。':''}
-authForm.addEventListener('submit',async e=>{e.preventDefault();authSubmit.disabled=true;authMsg.textContent='处理中…';let result;if(authMode==='signin')result=await db.auth.signInWithPassword({email:authEmail.value,password:authPassword.value});else result=await db.auth.signUp({email:authEmail.value,password:authPassword.value});authSubmit.disabled=false;if(result.error){authMsg.textContent=result.error.message;return}if(authMode==='signup'&&!result.data.session){authMsg.textContent='账号已建立。请检查 Email 完成确认，然后回来 Sign In。';setAuthMode('signin');return}await showApp(result.data.user)});
+googleSignInBtn.addEventListener('click', async ()=>{
+  googleSignInBtn.disabled=true;
+  authMsg.textContent='正在前往 Google 登录…';
+  const { error } = await db.auth.signInWithOAuth({
+    provider:'google',
+    options:{ redirectTo: window.location.origin + '/' }
+  });
+  if(error){
+    googleSignInBtn.disabled=false;
+    authMsg.textContent=error.message;
+  }
+});
 async function showApp(user){currentUser=user;authView.classList.add('hidden');appView.classList.remove('hidden');await refreshData()}
 async function showAuth(){currentUser=null;appView.classList.add('hidden');authView.classList.remove('hidden')}
-signInTab.onclick=()=>setAuthMode('signin');signUpTab.onclick=()=>setAuthMode('signup');signOutBtn.onclick=async()=>{await db.auth.signOut();showAuth()};addBtn.onclick=openAdd;cancelBtn.onclick=()=>expenseDialog.close();budgetBtn.onclick=()=>{budgetInput.value=budget||'';budgetDialog.showModal()};budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;exportBtn.onclick=exportData;chartMonth.onchange=renderBars;searchInput.oninput=renderHistory;typeFilter.onchange=renderHistory;categoryFilter.onchange=renderHistory;
-initSelects();setAuthMode('signin');db.auth.getSession().then(({data})=>data.session?showApp(data.session.user):showAuth());db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')showAuth();else if(session&&!currentUser)showApp(session.user)});
+signOutBtn.onclick=async()=>{await db.auth.signOut();showAuth()};addBtn.onclick=openAdd;cancelBtn.onclick=()=>expenseDialog.close();budgetBtn.onclick=()=>{budgetInput.value=budget||'';budgetDialog.showModal()};budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=saveBudget;exportBtn.onclick=exportData;chartMonth.onchange=renderBars;searchInput.oninput=renderHistory;typeFilter.onchange=renderHistory;categoryFilter.onchange=renderHistory;
+initSelects();db.auth.getSession().then(({data})=>data.session?showApp(data.session.user):showAuth());db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')showAuth();else if(session&&!currentUser)showApp(session.user)});
 </script>
 </body>
 </html>
