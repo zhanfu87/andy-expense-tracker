@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Andy Expense Tracker</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--good:#047857;--bad:#b91c1c;--shadow:0 10px 30px rgba(15,23,42,.06)}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select,textarea{font:inherit} button{cursor:pointer}
+    .app{max-width:1180px;margin:auto;padding:24px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.brand h1{margin:0;font-size:28px}.brand p{margin:5px 0 0;color:var(--muted);font-size:14px}.actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;font-weight:650}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{color:var(--bad)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}.metric .label{color:var(--muted);font-size:13px}.metric .value{font-size:27px;font-weight:800;margin-top:6px}.metric .sub{font-size:12px;color:var(--muted);margin-top:6px}
+    .section{margin-top:16px}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.section-head h2{font-size:18px;margin:0}.filters{display:flex;gap:8px;flex-wrap:wrap}.filters select,.filters input{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 10px}
+    .two{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}.bar-list{display:flex;flex-direction:column;gap:12px}.bar-row{display:grid;grid-template-columns:120px 1fr 86px;gap:10px;align-items:center}.bar-name{font-size:13px}.bar-track{height:10px;background:#eef0f4;border-radius:999px;overflow:hidden}.bar-fill{height:100%;background:#111827;border-radius:999px}.bar-amt{text-align:right;font-size:13px;font-weight:700}
+    table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13px} th{color:var(--muted);font-weight:600}.amount{font-weight:800}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:12px}.row-actions{display:flex;gap:6px}.icon-btn{border:1px solid var(--line);background:white;padding:6px 8px;border-radius:8px}.empty{text-align:center;color:var(--muted);padding:30px}
+    dialog{border:none;border-radius:20px;width:min(620px,calc(100% - 28px));padding:0;box-shadow:0 30px 80px rgba(0,0,0,.25)}dialog::backdrop{background:rgba(15,23,42,.45)}.modal{padding:22px}.modal h3{margin:0 0 18px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:var(--muted);font-weight:650}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:11px;padding:11px;background:#fff}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+    .budget{display:flex;align-items:center;justify-content:space-between;gap:14px}.budget-main{flex:1}.progress{height:12px;background:#eef0f4;border-radius:999px;overflow:hidden;margin-top:9px}.progress>div{height:100%;background:#111827}.budget-value{font-weight:800;font-size:18px;white-space:nowrap}.notice{font-size:12px;color:var(--muted);margin-top:6px}.footer{margin:24px 0 10px;text-align:center;color:var(--muted);font-size:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
+    @media(max-width:620px){.app{padding:14px}.grid{grid-template-columns:1fr 1fr}.metric .value{font-size:22px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.bar-row{grid-template-columns:90px 1fr 72px}.table-wrap{overflow:auto}th,td{white-space:nowrap}.brand h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><h1>Andy Expense Tracker</h1><p>私人开销 · 一眼看懂钱花在哪里</p></div>
+    <div class="actions"><button class="btn" id="exportBtn">Export</button><button class="btn" id="importBtn">Import</button><input id="importFile" type="file" accept="application/json" hidden><button class="btn primary" id="addBtn">＋ Add Expense</button></div>
+  </div>
+
+  <div class="grid">
+    <div class="card metric"><div class="label">本月开销</div><div class="value" id="monthTotal">RM0.00</div><div class="sub" id="monthCompare">—</div></div>
+    <div class="card metric"><div class="label">今日开销</div><div class="value" id="todayTotal">RM0.00</div><div class="sub" id="todayCount">0 笔交易</div></div>
+    <div class="card metric"><div class="label">本周开销</div><div class="value" id="weekTotal">RM0.00</div><div class="sub">周一至今天</div></div>
+    <div class="card metric"><div class="label">本月日均</div><div class="value" id="dailyAvg">RM0.00</div><div class="sub">按本月已过天数计算</div></div>
+  </div>
+
+  <div class="card section">
+    <div class="budget"><div class="budget-main"><div class="section-head" style="margin:0"><h2>Monthly Budget</h2><button class="btn" id="budgetBtn">设置预算</button></div><div class="progress"><div id="budgetProgress" style="width:0%"></div></div><div class="notice" id="budgetText">尚未设置预算</div></div><div class="budget-value" id="budgetRemaining">—</div></div>
+  </div>
+
+  <div class="two section">
+    <div class="card"><div class="section-head"><h2>分类开销</h2><select id="chartMonth"></select></div><div class="bar-list" id="categoryBars"></div></div>
+    <div class="card"><div class="section-head"><h2>付款方式</h2></div><div class="bar-list" id="paymentBars"></div></div>
+  </div>
+
+  <div class="card section">
+    <div class="section-head"><h2>Expense History</h2><div class="filters"><input id="searchInput" placeholder="搜索商家 / 备注"><select id="typeFilter"><option value="">全部类型</option><option>Personal</option><option>Momenti Studios</option><option>DVC / Business</option><option>Home</option></select><select id="categoryFilter"><option value="">全部分类</option></select></div></div>
+    <div class="table-wrap"><table><thead><tr><th>日期</th><th>商家</th><th>分类</th><th>付款</th><th>类型</th><th>金额</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
+  </div>
+  <div class="footer">数据目前只保存在此浏览器。下一阶段可接 Supabase 做多设备同步。</div>
+</div>
+
+<dialog id="expenseDialog"><div class="modal"><h3 id="modalTitle">Add Expense</h3><form id="expenseForm"><input type="hidden" id="editId"><div class="form-grid">
+  <div class="field"><label>日期</label><input id="date" type="date" required></div>
+  <div class="field"><label>金额 (RM)</label><input id="amount" type="number" step="0.01" min="0" required placeholder="0.00"></div>
+  <div class="field full"><label>商家 / 项目</label><input id="merchant" required placeholder="例如 Jaya Grocer"></div>
+  <div class="field"><label>分类</label><select id="category" required></select></div>
+  <div class="field"><label>付款方式</label><select id="payment" required></select></div>
+  <div class="field"><label>Expense Type</label><select id="expenseType" required><option>Personal</option><option>Momenti Studios</option><option>DVC / Business</option><option>Home</option></select></div>
+  <div class="field"><label>时间</label><input id="time" type="time"></div>
+  <div class="field full"><label>备注</label><textarea id="remarks" rows="3" placeholder="可选"></textarea></div>
+</div><div class="modal-actions"><button type="button" class="btn" id="cancelBtn">Cancel</button><button class="btn primary" type="submit">Save Expense</button></div></form></div></dialog>
+
+<dialog id="budgetDialog"><div class="modal"><h3>设置每月预算</h3><div class="field"><label>Monthly Budget (RM)</label><input id="budgetInput" type="number" step="100" min="0" placeholder="例如 8000"></div><div class="modal-actions"><button class="btn" id="budgetCancel">Cancel</button><button class="btn primary" id="budgetSave">Save</button></div></div></dialog>
+
+<script>
+const CATEGORIES=['Food','Grocery','Petrol','Car','Shopping','Bills','Entertainment','Health','Travel','Home','Business','Others'];
+const PAYMENTS=['Cash','Maybank Amex','Maybank Visa/Mastercard','UOB','Touch ’n Go','DuitNow','Other Card','Others'];
+const $=s=>document.querySelector(s); const money=n=>'RM'+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+let expenses=JSON.parse(localStorage.getItem('andyExpenses')||'[]'); let budget=Number(localStorage.getItem('andyBudget')||0);
+function save(){localStorage.setItem('andyExpenses',JSON.stringify(expenses));render()}
+function localDate(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+function monthKey(d){return d.slice(0,7)}
+function initSelects(){category.innerHTML=CATEGORIES.map(x=>`<option>${x}</option>`).join(''); payment.innerHTML=PAYMENTS.map(x=>`<option>${x}</option>`).join(''); categoryFilter.innerHTML='<option value="">全部分类</option>'+CATEGORIES.map(x=>`<option>${x}</option>`).join(''); const now=new Date();let opts='';for(let i=0;i<12;i++){let d=new Date(now.getFullYear(),now.getMonth()-i,1);let k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;opts+=`<option value="${k}">${d.toLocaleDateString('en-MY',{month:'long',year:'numeric'})}</option>`}chartMonth.innerHTML=opts}
+function totalsForMonth(k){return expenses.filter(e=>monthKey(e.date)===k).reduce((s,e)=>s+Number(e.amount),0)}
+function render(){const now=new Date(), today=localDate(), currentMonth=today.slice(0,7);const monthItems=expenses.filter(e=>monthKey(e.date)===currentMonth);const mtotal=monthItems.reduce((s,e)=>s+Number(e.amount),0);monthTotal.textContent=money(mtotal);todayTotal.textContent=money(expenses.filter(e=>e.date===today).reduce((s,e)=>s+Number(e.amount),0));todayCount.textContent=`${expenses.filter(e=>e.date===today).length} 笔交易`;
+  const day=(now.getDay()+6)%7;const monday=new Date(now);monday.setDate(now.getDate()-day);monday.setHours(0,0,0,0);weekTotal.textContent=money(expenses.filter(e=>new Date(e.date+'T00:00:00')>=monday&&e.date<=today).reduce((s,e)=>s+Number(e.amount),0));dailyAvg.textContent=money(mtotal/Math.max(1,now.getDate()));
+  let prev=new Date(now.getFullYear(),now.getMonth()-1,1);let pk=`${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`, ptotal=totalsForMonth(pk);monthCompare.textContent=ptotal?`${mtotal>=ptotal?'↑':'↓'} ${Math.abs((mtotal-ptotal)/ptotal*100).toFixed(1)}% vs 上个月`:'暂无上月数据';
+  renderBudget(mtotal);renderBars();renderHistory();}
+function renderBudget(mtotal){if(!budget){budgetProgress.style.width='0%';budgetText.textContent='尚未设置预算';budgetRemaining.textContent='—';return}let pct=Math.min(100,mtotal/budget*100);budgetProgress.style.width=pct+'%';budgetText.textContent=`已使用 ${money(mtotal)} / ${money(budget)} · ${pct.toFixed(0)}%`;budgetRemaining.textContent=mtotal<=budget?`剩 ${money(budget-mtotal)}`:`超出 ${money(mtotal-budget)}`}
+function group(items,key){return items.reduce((o,e)=>(o[e[key]]=(o[e[key]]||0)+Number(e.amount),o),{})}
+function bars(el,obj){let arr=Object.entries(obj).sort((a,b)=>b[1]-a[1]),max=arr[0]?.[1]||1;el.innerHTML=arr.length?arr.map(([k,v])=>`<div class="bar-row"><div class="bar-name">${k}</div><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><div class="bar-amt">${money(v)}</div></div>`).join(''):'<div class="empty">暂无数据</div>'}
+function renderBars(){let k=chartMonth.value||localDate().slice(0,7),items=expenses.filter(e=>monthKey(e.date)===k);bars(categoryBars,group(items,'category'));bars(paymentBars,group(items,'payment'))}
+function renderHistory(){let q=searchInput.value.trim().toLowerCase(),tf=typeFilter.value,cf=categoryFilter.value;let list=[...expenses].filter(e=>(!q||(e.merchant+' '+(e.remarks||'')).toLowerCase().includes(q))&&(!tf||e.type===tf)&&(!cf||e.category===cf)).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));historyBody.innerHTML=list.length?list.map(e=>`<tr><td>${e.date}${e.time?`<br><span style="color:#9ca3af">${e.time}</span>`:''}</td><td><strong>${esc(e.merchant)}</strong>${e.remarks?`<br><span style="color:#9ca3af">${esc(e.remarks)}</span>`:''}</td><td><span class="pill">${esc(e.category)}</span></td><td>${esc(e.payment)}</td><td>${esc(e.type)}</td><td class="amount">${money(e.amount)}</td><td><div class="row-actions"><button class="icon-btn" onclick="editExpense('${e.id}')">Edit</button><button class="icon-btn" onclick="deleteExpense('${e.id}')">Delete</button></div></td></tr>`).join(''):'<tr><td colspan="7" class="empty">还没有记录。点击 Add Expense 开始。</td></tr>'}
+function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function openAdd(){modalTitle.textContent='Add Expense';expenseForm.reset();editId.value='';date.value=localDate();time.value=new Date().toTimeString().slice(0,5);expenseType.value='Personal';expenseDialog.showModal()}
+window.editExpense=id=>{let e=expenses.find(x=>x.id===id);if(!e)return;modalTitle.textContent='Edit Expense';editId.value=id;date.value=e.date;amount.value=e.amount;merchant.value=e.merchant;category.value=e.category;payment.value=e.payment;expenseType.value=e.type;time.value=e.time||'';remarks.value=e.remarks||'';expenseDialog.showModal()}
+window.deleteExpense=id=>{if(confirm('删除这笔开销？')){expenses=expenses.filter(x=>x.id!==id);save()}}
+expenseForm.addEventListener('submit',ev=>{ev.preventDefault();let rec={id:editId.value||crypto.randomUUID(),date:date.value,time:time.value,amount:Number(amount.value),merchant:merchant.value.trim(),category:category.value,payment:payment.value,type:expenseType.value,remarks:remarks.value.trim()};if(editId.value)expenses=expenses.map(x=>x.id===editId.value?rec:x);else expenses.push(rec);expenseDialog.close();save()});
+addBtn.onclick=openAdd;cancelBtn.onclick=()=>expenseDialog.close();chartMonth.onchange=renderBars;searchInput.oninput=renderHistory;typeFilter.onchange=renderHistory;categoryFilter.onchange=renderHistory;
+budgetBtn.onclick=()=>{budgetInput.value=budget||'';budgetDialog.showModal()};budgetCancel.onclick=()=>budgetDialog.close();budgetSave.onclick=()=>{budget=Number(budgetInput.value||0);localStorage.setItem('andyBudget',budget);budgetDialog.close();render()};
+exportBtn.onclick=()=>{let blob=new Blob([JSON.stringify({version:1,budget,expenses},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`andy-expenses-${localDate()}.json`;a.click();URL.revokeObjectURL(a.href)};importBtn.onclick=()=>importFile.click();importFile.onchange=async()=>{let f=importFile.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.expenses))throw 0;expenses=d.expenses;budget=Number(d.budget||0);localStorage.setItem('andyBudget',budget);save()}catch{alert('无法读取这个备份文件。')}};
+initSelects();render();
+</script>
+</body>
+</html>
