@@ -74,7 +74,7 @@ const SUPABASE_URL='https://mvbvwappyfiqslqjbtgl.supabase.co';
 const SUPABASE_KEY='sb_publishable_54Cts4lTqX130GSPokde-Q_sdWgjfyk';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const CATEGORIES=['Food','Grocery','Petrol','Car','Shopping','Bills','Entertainment','Health','Travel','Home','Business','Others'];
-const PAYMENTS=['Cash','Maybank Amex','Maybank Visa/Mastercard','UOB','Touch ’n Go','DuitNow','Other Card','Others'];
+const PAYMENTS=['Cash','Maybank Amex','Maybank Visa/Mastercard','CIMB','UOB','Touch ’n Go','DuitNow','Other Card','Others'];
 const $=s=>document.querySelector(s); const money=n=>'RM'+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
 let expenses=[], budget=0, currentUser=null;
 function localDate(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
